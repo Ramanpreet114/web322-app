@@ -2,7 +2,7 @@ var express = require("express");
 var app = express();
 app.use(express.static('public'));
 var HTTP_PORT = process.env.PORT || 8080;
-
+const path = require["path"]
 
 function onHttpStart() {
   console.log("Express http server listening on: " + HTTP_PORT);
@@ -14,13 +14,13 @@ function onHttpStart() {
 // });
 
 
-app.get("/about", function(req,res){
-    res.send("<h3>About</h3>");
+app.get("/", function(req,res){
+    // res.send("<h3>About</h3>");
     
-    res.redirect('/views/about.html');
+    res.redirect('/about');
 });
 app.get("/about",(req,res)=>
 {
-  res.sendfile(__dirname/views/about.html)
+  res.sendfile(path.join(__dirname,'/views/about.html'))
 });
 app.listen(HTTP_PORT, onHttpStart);
