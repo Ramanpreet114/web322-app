@@ -1,6 +1,6 @@
 var express = require("express");
 var app = express();
-
+app.use(express.static('public'));
 var HTTP_PORT = process.env.PORT || 8080;
 
 
@@ -16,8 +16,11 @@ function onHttpStart() {
 
 app.get("/about", function(req,res){
     res.send("<h3>About</h3>");
-    app.use(express.static('public'));
+    
     res.redirect('/views/about.html');
 });
-
+app.get("/about",(req,res)=>
+{
+  res.sendfile(__dirname/views/about.html)
+});
 app.listen(HTTP_PORT, onHttpStart);
