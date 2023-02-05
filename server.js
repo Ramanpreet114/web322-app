@@ -2,7 +2,7 @@ var express = require("express");
 var app = express();
 app.use(express.static('public'));
 var HTTP_PORT = process.env.PORT || 8080;
-const path = require["path"]
+const path = require("path")
 
 function onHttpStart() {
   console.log("Express http server listening on: " + HTTP_PORT);
@@ -21,6 +21,6 @@ app.get("/", function(req,res){
 });
 app.get("/about",(req,res)=>
 {
-  res.sendfile(path.join(__dirname,'/views/about.html'))
+  res.sendFile(path.join(__dirname,'/views/about.html'))
 });
 app.listen(HTTP_PORT, onHttpStart);
