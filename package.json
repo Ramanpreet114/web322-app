@@ -10,9 +10,12 @@
   "author": "Ramanpreet Singh",
   "license": "ISC",
   "dependencies": {
+    "cloudinary": "^1.34.0",
     "express": "^4.18.2",
     "fs": "^0.0.1-security",
+    "multer": "^1.4.5-lts.1",
     "path": "^0.12.7",
-    "prettyjson": "^1.2.5"
+    "prettyjson": "^1.2.5",
+    "streamifier": "^0.1.1"
   }
 }

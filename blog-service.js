@@ -1,4 +1,5 @@
 const fs = require('fs');
+const { resolve } = require('path');
 var categories = [];
 var posts = [];
 exports.initialize = () => {
@@ -22,7 +23,7 @@ exports.initialize = () => {
       });
     });
   };
-exports.getAllPosts = () =>
+  exports.getAllPosts = () =>
 {
     return new Promise((resolve,reject)=>{
         if (posts.length == 0)
@@ -48,7 +49,6 @@ exports.getPublishedPosts = () =>
 }
 
 
-
 exports.getCategories = () =>
 {
     return new Promise((resolve,reject)=>{
@@ -58,4 +58,62 @@ exports.getCategories = () =>
         }
         resolve(categories);
     })
+}
+exports.addPosts = (postData) =>
+{
+  return new Promise((resolve,reject) =>
+  {
+    if(postData.published == undefined) {
+      postData.published = false;
+  } else {
+      postData.published = true;
+  }
+
+  postData.length = posts.length + 1; 
+  posts.push(postData);
+  resolve(postData);
+  })
+}
+exports.getPostbyID = (ID) =>
+{
+  return new Promise((resolve,reject) =>
+  {
+  var filterp = posts.find(post=> post.ID == ID);
+  if (filterp)
+  {
+    resolve(filterp);
+  }
+  else
+  {
+    reject('no result found');
+  }
+})
+}
+exports.getPostbyMinDate = (minDateStr) =>
+{
+  return new Promise((resolve,reject) =>
+  {
+  var filterdat = posts.filter(posts => (new Date(post.postDate)) >= (new Date(minDateStr)))
+  if (filterdat.length != 0)
+  {
+    resolve(filterdat); 
+  }
+  else
+  {    
+    reject('no result found');
+  }
+})
+}
+exports.getPostsByCategory = function(category) {
+  return new Promise((resolve, reject) => {
+      let filteredcatp = posts.filter(post => post.category == category);
+
+      if (filteredcatp.length != 0)
+      {
+        resolve(filteredcatp);
+      } else {
+          
+          reject('no result found');
+      }
+  })
 }
