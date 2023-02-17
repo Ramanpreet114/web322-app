@@ -69,7 +69,7 @@ exports.addPosts = (postData) =>
       postData.published = true;
   }
 
-  postData.length = posts.length + 1; 
+  postData.ID = posts.length + 1; 
   posts.push(postData);
   resolve(postData);
   })
@@ -93,7 +93,7 @@ exports.getPostbyMinDate = (minDateStr) =>
 {
   return new Promise((resolve,reject) =>
   {
-  var filterdat = posts.filter(posts => (new Date(post.postDate)) >= (new Date(minDateStr)))
+  var filterdat = posts.filter(posts => (new Date(posts.postDate)) >= (new Date(minDateStr)))
   if (filterdat.length != 0)
   {
     resolve(filterdat); 
