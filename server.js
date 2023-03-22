@@ -1,175 +1,221 @@
-
-/********************************************************************************
-// WEB322 – Assignment 02
-// * I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part 
-// * of this assignment has been copied manually or electronically from any other source 
-// * (including 3rd party web sites) or distributed to other students.
-// * 
-// * Name: ___________Ramanpreet Singh___________ Student ID: ____157079211__________ Date: _____17 Feburary 2023___________
-// *
-// * Cyclic Web App URL: ____________________https://puce-faithful-rhinoceros.cyclic.app/____________________________________
-// *
-// * GitHub Repository URL: _________________________https://github.com/Ramanpreet114/web322-app_____________________________
-
-
-********************************************************************************/ 
-
-var express = require("express");
-
-var app = express();
-
-app.use(express.static('public'));
-var HTTP_PORT = process.env.PORT || 8080;
-const path = require("path");
-const multer = require('multer');
+const express = require('express');
+const blogData = require("./blog-service");
+const multer = require("multer");
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-var blogservice = require(__dirname + "/blog-service.js");
+const path = require("path");
+const app = express();
 
-const upload = multer(); // no { storage: storage } since we are not using disk storage
-function onHttpStart() {
-  console.log("Express http server listening on: " + HTTP_PORT);
-}
+const exphbs = require("express-handlebars");
+const stripJs = require("strip-js");
+const blogService = require("./blog-service");
 
+app.engine(
+  ".hbs",
+  exphbs.engine({
+    extname: ".hbs",
+    helpers: {
+      navLink: function (url, options) {
+        return (
+          "<li" +
+          (url == app.locals.activeRoute ? ' class="active" ' : " ") +
+          '><a href="' +
+          url +
+          '">' +
+          options.fn(this) +
+          "</a></li>"
+        );
+      },
+      safeHTML: function (context) {
+        return stripJs(context);
+      },
 
-
-app.get("/", function(_req,res){
-    
-    res.redirect('/about');
-});
-app.get("/about",(_req,res)=>
-{
-  res.sendFile(path.join(__dirname,'/views/about.html'))
-});
-
-app.get("/posts/add",(req,res)=>
-{
-  res.sendFile(path.join(__dirname, '/views/addPost.html'))
-});
-
-app.get("/blog", function (_req, res) {
-  blogservice.getPublishedPosts().then((data) => {
-    res.json({data});
-}).catch((err) => {
-    res.json({message: err});
-})
-});
-
-app.get("/post", function (_req, res) {
-  blogservice.getAllPosts().then((data) => {
-    res.json({data});
-  }).catch((err) => {
-    res.json({message: err});
+      equal: function (lvalue, rvalue, options) {
+        if (arguments.length < 3)
+          throw new Error("Handlebars Helper equal needs 2 parameters");
+        if (lvalue != rvalue) {
+          return options.inverse(this);
+        } else {
+          return options.fn(this);
+        }
+      },
+    },
   })
+);
+app.set("view engine", ".hbs");
+const HTTP_PORT = process.env.PORT || 8080;
+
+
+app.use(express.static('public'));
+
+app.use(function(req, res, next) {
+    let route = req.path.substring(1);
+    app.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
+    app.locals.viewingCategory = req.query.category;
+    next();
 });
 
-app.get("/categories", function (_req, res) {
-  blogservice.getCategories().then((data) => {
-    res.json({data});
-  }).catch((err) => {
-    res.json({message: err});
-  });
-});
-
-app.use((req, res) => {
-  res.status(404).end('404 PAGE NOT FOUND');
-});
 
 cloudinary.config({
-  cloud_name: 'dvap3dela',
-  api_key: '145978467877823',
-  api_secret: 'nCpYsVXqeeN_AuL-SauvQ-_kgTc',
-  secure: true
- });
-
-
- app.post("/posts/add", upload.single("featureImage"), (req, res) => 
- {
-    if(req.file)
-    {
-      let streamUpload = (req) => 
-      {
-        return new Promise((resolve, reject) => 
-        {
-            let stream = cloudinary.uploader.upload_stream
-          (
-            (error, result) => 
-            {
-              if (result) 
-              {
-                  resolve(result);
-              } else 
-                {
-                  reject(error);
-                }
-            }
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
-      };
-      async function upload(req) 
-      {
-        let result = await streamUpload(req);
-        console.log(result);
-        return result;
-      }
-      upload(req).then((uploaded)=>
-      {
-      
-      req.body.featureImage = uploaded.url;
-    
-      blogservice.addPost(req.body).then(post => 
-        {
-          res.redirect("/posts");
-        }).catch(err => 
-        {
-          res.status(404).send(err);
-        });
-      });
-    }
-    else
-    {
-      req.body.featureImage = "";
-    
-    blogservice.addPost(req.body).then(post => {
-      res.redirect("/posts");
-    }).catch(err => {
-      res.status(404).send(err);
-    })
-    }
-    function processPost(imageUrl)
-    {
-      req.body.featureImage = imageUrl
-    };
- 
-  }
-);
-app.get("/posts", function (req, res) {
-  let q = null;
-  if (req.q.category) {
-    q = blogservice.getPostsByCategory(req.q.category);
-  } else if (req.q.minDate) {
-    q = blogservice.getPostsByMinDate(req.q.minDate);
-  } else {
-    q = blogservice.getAllPosts();
-  }
-
-  q.then((data) => {
-    res.json({ data });
-  }).catch((err) => {
-    res.json({ message: err });
-  })
+    cloud_name: 'cloud_name',
+    api_key: 'api_key',
+    api_secret: 'api_secret',
+    secure: true
 });
 
+const upload = multer();
 
-blogservice.initialize()
- .then(() => {
-   // start the server only if the initialization was successful
-   app.listen(HTTP_PORT, () => {
-     console.log(`Server is listening on port ${HTTP_PORT}`);
-   });
- })
- .catch(err => {
-   // output the error to the console if the initialization failed
-   console.error("Error initializing the blog-service:", err);
- });
+app.use(express.static('public'));
+
+app.get('/', (req, res) => {
+    res.redirect("/");
+});
+
+app.get('/about', (req, res) => {
+    res.render("about", {
+        layout: "main",
+        data: { name: "name about page" },
+      });
+});
+
+app.get('/blog/:id', async(req, res) => {
+
+    let viewData = {};
+
+    try {        
+        let posts = [];        
+        if (req.query.category) {
+           
+            posts = await blog_service.getPublishedPostsByCategory(req.query.category);
+        } else {            
+            posts = await blog_service.getPublishedPosts();
+        }        
+        posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+        viewData.posts = posts;
+
+    } catch (err) {
+        viewData.message = "no results";
+    }
+
+    try {
+        viewData.post = await blog_service.getPostsById(req.params.id);
+    } catch (err) {
+        viewData.message = "no results";
+    }
+    try {
+        let categories = await blog_service.getCategories();      
+        viewData.categories = categories;
+    } catch (err) {
+        viewData.categoriesMessage = "no results"
+    }
+    res.render("blog", { data: viewData })
+});
+
+app.get('/blog', (req,res)=>{
+    blogData.getPublishedPosts().then((data=>{
+        res.json(data);
+    })).catch(err=>{
+        res.json({message: err});
+    });
+});
+
+app.get("/posts/add", function(req, res) {
+    res.render('addPost', {
+        layout: "main"
+    })
+})
+
+app.get('/posts', (req,res)=>{
+
+    let queryPromise = null;
+
+    if(req.query.category){
+        queryPromise = blogData.getPostsByCategory(req.query.category);
+    }else if(req.query.minDate){
+        queryPromise = blogData.getPostsByMinDate(req.query.minDate);
+    }else{
+        queryPromise = blogData.getAllPosts()
+    } 
+
+    queryPromise.then(data=>{
+        res.json(data);
+    }).catch(err=>{
+        res.json({message: err});
+    })
+
+});
+
+app.post("/posts/add", upload.single("featureImage"), (req,res)=>{
+
+    if(req.file){
+        let streamUpload = (req) => {
+            return new Promise((resolve, reject) => {
+                let stream = cloudinary.uploader.upload_stream(
+                    (error, result) => {
+                        if (result) {
+                            resolve(result);
+                        } else {
+                            reject(error);
+                        }
+                    }
+                );
+    
+                streamifier.createReadStream(req.file.buffer).pipe(stream);
+            });
+        };
+    
+        async function upload(req) {
+            let result = await streamUpload(req);
+            console.log(result);
+            return result;
+        }
+    
+        upload(req).then((uploaded)=>{
+            processPost(uploaded.url);
+        });
+    }else{
+        processPost("");
+    }
+
+    function processPost(imageUrl){
+        req.body.featureImage = imageUrl;
+
+        blogData.addPost(req.body).then(post=>{
+            res.redirect("/posts");
+        }).catch(err=>{
+            res.status(500).send(err);
+        })
+    }   
+});
+
+app.get('/posts/add', (req,res)=>{
+   res.sendFile(path.join(__dirname, "/views/addPost.html"));
+}); 
+
+app.get('/post/:id', (req,res)=>{
+    blogData.getPostById(req.params.id).then(data=>{
+        res.json(data);
+    }).catch(err=>{
+        res.json({message: err});
+    });
+});
+
+app.get('/categories', (req,res)=>{
+    blogData.getCategories().then((data=>{
+        res.json(data);
+    })).catch(err=>{
+        res.json({message: err});
+    });
+});
+
+app.use((req,res)=>{
+    res.status(404).send("404 - Page Not Found")
+})
+
+blogData.initialize().then(()=>{
+    app.listen(HTTP_PORT, () => { 
+        console.log('server listening on: ' + HTTP_PORT); 
+    });
+}).catch((err)=>{
+    console.log(err);
+})
